@@ -101,6 +101,64 @@ async def run_tax_agent_demo(
                 print("Agent returned no messages.")
                 return
 
+            # Extract tool results from the conversation so we can build the payload
+            # even when the model's final message only contains the explanation.
+            tool_results: Dict[str, Any] = {}
+            for msg in final_messages:
+                name = getattr(msg, "name", None) or getattr(msg, "tool", None)
+                if name in ("calculate_tax", "generate_mock_1040") and hasattr(msg, "content"):
+                    raw = msg.content
+                    if isinstance(raw, list) and raw:
+                        first = raw[0]
+                        if isinstance(first, dict):
+                            raw = first.get("text") or first.get("content") or raw
+                    if isinstance(raw, str):
+                        raw = raw.strip()
+                        if raw.startswith("{"):
+                            try:
+                                tool_results[name] = json.loads(raw)
+                            except json.JSONDecodeError:
+                                tool_results[name] = raw
+                        else:
+                            tool_results[name] = raw
+                    elif isinstance(raw, dict):
+                        tool_results[name] = raw
+
+            # Explanation: last non-tool message content (usually the final AI reply)
+            explanation_text = ""
+            for msg in reversed(final_messages):
+                if getattr(msg, "tool_calls", None):
+                    continue
+                c = getattr(msg, "content", None)
+                if c is None:
+                    continue
+                if isinstance(c, str) and c.strip():
+                    explanation_text = c.strip()
+                    break
+                if isinstance(c, list):
+                    for block in c:
+                        if isinstance(block, dict):
+                            t = block.get("text") or block.get("content")
+                            if isinstance(t, str) and t.strip():
+                                explanation_text = t.strip()
+                                break
+                    if explanation_text:
+                        break
+
+            # If we got both tool results, build the expected payload and print it.
+            calc = tool_results.get("calculate_tax")
+            mock = tool_results.get("generate_mock_1040")
+            if isinstance(calc, dict) and isinstance(mock, dict):
+                parsed = {
+                    "summary": {
+                        "calculate_tax_response": calc,
+                        "generate_mock_1040_response": mock,
+                    },
+                    "explanation": explanation_text or "Tax estimate based on the provided inputs.",
+                }
+                print(json.dumps(parsed))
+                return
+
             last = final_messages[-1]
             content = getattr(last, "content", last)
 
