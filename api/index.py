@@ -81,6 +81,31 @@ def _extract_agent_payload(agent_response: dict) -> dict:
     return {"calc": calc, "mock": mock, "explanation": agent_response.get("explanation")}
 
 
+def _unwrap_langchain_output(block: dict) -> dict:
+    """
+    The LangGraph agent sometimes returns tool results wrapped in a
+    LangChain-style `{"output": [{"text": "...json..."}]}` structure.
+    This helper unwraps that into a plain dict when possible.
+    """
+    if not isinstance(block, dict):
+        return block
+
+    output = block.get("output")
+    if isinstance(output, list) and output:
+        first = output[0]
+        if isinstance(first, dict):
+            text = first.get("text")
+            if isinstance(text, str):
+                try:
+                    parsed = json.loads(text)
+                    if isinstance(parsed, dict):
+                        return parsed
+                except json.JSONDecodeError:
+                    # Fall through to return original block.
+                    pass
+    return block
+
+
 @app.post("/api/calculate")
 async def calculate_route(req: TaxRequest) -> dict:
     """
@@ -95,8 +120,11 @@ async def calculate_route(req: TaxRequest) -> dict:
         )
     )
     payload = _extract_agent_payload(agent)
-    calc = payload["calc"]
-    mock = payload["mock"]
+    calc_raw = payload["calc"]
+    mock_raw = payload["mock"]
+
+    calc = _unwrap_langchain_output(calc_raw)
+    mock = _unwrap_langchain_output(mock_raw)
     # The generate_mock_1040 tool returns a wrapper that includes
     # `mock_form`, `calculation`, and `summary`. The frontend only
     # needs `mock_form` for display.
