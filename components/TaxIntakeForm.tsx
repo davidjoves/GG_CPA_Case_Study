@@ -20,15 +20,19 @@ type TaxFormValues = {
   federalWithheld: string;
 };
 
+type TaxIntakeFormProps = {
+  initialValues?: Partial<TaxFormValues>;
+};
+
 type TaxFormErrors = Partial<Record<keyof TaxFormValues, string>>;
 
-export function TaxIntakeForm() {
+export function TaxIntakeForm({ initialValues }: TaxIntakeFormProps) {
   const router = useRouter();
   const [values, setValues] = useState<TaxFormValues>({
-    filingStatus: "",
-    grossIncome: "",
-    totalDeductions: "",
-    federalWithheld: "",
+    filingStatus: (initialValues?.filingStatus as FilingStatus | "") ?? "",
+    grossIncome: initialValues?.grossIncome ?? "",
+    totalDeductions: initialValues?.totalDeductions ?? "",
+    federalWithheld: initialValues?.federalWithheld ?? "",
   });
   const [errors, setErrors] = useState<TaxFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -129,30 +133,41 @@ export function TaxIntakeForm() {
       }
 
       const data = (await response.json()) as {
-        income: number;
-        deductions_applied: number;
-        taxable_income: number;
-        tax_owed: number;
-        effective_rate_percent: number;
-        top_marginal_bracket: string;
+        calculate: {
+          income: number;
+          deductions_applied: number;
+          taxable_income: number;
+          tax_owed: number;
+          effective_rate_percent: number;
+          top_marginal_bracket: string;
+        };
+        mock_1040?: {
+          title: string;
+          tax_year: number;
+          lines: { line: string; label: string; value: number }[];
+        };
       };
 
+      const calc = data.calculate;
+
       const netRefundOrBalance = Number(
-        (withheld - data.tax_owed).toFixed(2),
+        (withheld - calc.tax_owed).toFixed(2),
       );
 
       setTaxSummary({
-        taxOwed: data.tax_owed,
-        taxableIncome: data.taxable_income,
-        effectiveRatePercent: data.effective_rate_percent,
+        taxOwed: calc.tax_owed,
+        taxableIncome: calc.taxable_income,
+        effectiveRatePercent: calc.effective_rate_percent,
         netRefundOrBalance,
       });
-      // Navigate to dedicated results page, passing inputs via query string.
+      // Navigate to dedicated results page, passing inputs via query string,
+      // including the UI filing status so it can be restored when navigating back.
       const params = new URLSearchParams({
         income: String(income),
         deductions: String(deductions),
         withheld: String(withheld),
         filing_status: mapFilingStatusToApi(values.filingStatus),
+        ui_status: values.filingStatus || "",
       });
       router.push(`/results?${params.toString()}`);
     } catch (error) {

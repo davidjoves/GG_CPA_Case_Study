@@ -81,6 +81,10 @@ def _extract_agent_payload(agent_response: dict) -> dict:
 
 @app.post("/api/calculate")
 async def calculate_route(req: TaxRequest) -> dict:
+    """
+    Run the AI agent once and return both the core tax
+    calculation and the mock 1040 form from that single run.
+    """
     agent = agent_run(
         AgentRequest(
             income=req.income,
@@ -89,23 +93,27 @@ async def calculate_route(req: TaxRequest) -> dict:
         )
     )
     payload = _extract_agent_payload(agent)
-    return payload["calc"]
+    calc = payload["calc"]
+    mock = payload["mock"]
+    # The generate_mock_1040 tool returns a wrapper that includes
+    # `mock_form`, `calculation`, and `summary`. The frontend only
+    # needs `mock_form` for display.
+    mock_form = mock.get("mock_form", mock)
+    return {
+        "calculate": calc,
+        "mock_1040": mock_form,
+        "explanation": payload.get("explanation"),
+    }
 
 
 @app.post("/api/mock-1040")
 async def mock_1040_route(req: TaxRequest) -> dict:
     """
-    Return a mock 1040-style representation driven by the MCP agent tools.
+    Backwards-compatible endpoint that now simply reuses the
+    single agent run used by /api/calculate.
     """
-    agent = agent_run(
-        AgentRequest(
-            income=req.income,
-            filing_status=req.filing_status,
-            deductions=req.deductions,
-        )
-    )
-    payload = _extract_agent_payload(agent)
-    return payload["mock"]
+    combined = await calculate_route(req)
+    return {"mock_form": combined["mock_1040"]}
 
 
 class AgentRequest(BaseModel):

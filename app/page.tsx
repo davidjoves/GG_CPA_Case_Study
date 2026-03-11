@@ -1,6 +1,38 @@
 import { TaxIntakeForm } from "../components/TaxIntakeForm";
 
-export default function Home() {
+type SearchParams = {
+  income?: string;
+  deductions?: string;
+  withheld?: string;
+  filing_status?: string;
+  ui_status?: string;
+};
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+
+  const initialValues = {
+    grossIncome: params.income ?? "",
+    totalDeductions: params.deductions ?? "",
+    federalWithheld: params.withheld ?? "",
+    filingStatus:
+      (params.ui_status as
+        | "single"
+        | "married_joint"
+        | "married_separate"
+        | "head"
+        | "qualifying_surviving_spouse"
+        | "") ??
+      (params.filing_status === "married"
+        ? "married_joint"
+        : params.filing_status === "single"
+          ? "single"
+          : ""),
+  };
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
       <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
@@ -46,7 +78,7 @@ export default function Home() {
               </div>
             </div>
 
-            <TaxIntakeForm />
+            <TaxIntakeForm initialValues={initialValues} />
           </div>
         </section>
       </main>
