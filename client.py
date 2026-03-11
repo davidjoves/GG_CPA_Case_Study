@@ -31,7 +31,7 @@ def _build_model() -> ChatGoogleGenerativeAI:
         raise RuntimeError("GOOGLE_API_KEY environment variable is required.")
 
 
-    return ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+    return ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0)
 
 
 async def run_tax_agent_demo(
