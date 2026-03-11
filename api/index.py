@@ -50,35 +50,37 @@ def health() -> dict:
 
 def _extract_agent_payload(agent_response: dict) -> dict:
     """
-    Validate and extract the expected agent payload shape.
+    Extract calc and mock from the agent response. Accepts multiple shapes:
 
-    Expected:
-      {
-        "summary": {
-          "calculate_tax_response": {...},
-          "generate_mock_1040_response": {...}
-        },
-        "explanation": "..."
-      }
+    1) Preferred: { "summary": { "calculate_tax_response": {...}, "generate_mock_1040_response": {...} }, "explanation": "..." }
+    2) Top-level:  { "calculate": {...}, "mock_1040": {...}, "explanation": "..." }
+       (values may be LangChain-wrapped {"output": [{"text": "..."}]})
     """
+    if not isinstance(agent_response, dict):
+        raise HTTPException(status_code=500, detail="Agent response is not a JSON object.")
+
+    explanation = agent_response.get("explanation")
+    if not isinstance(explanation, str):
+        explanation = None
+
+    # Shape 1: summary wrapper
     summary = agent_response.get("summary")
-    if not isinstance(summary, dict):
-        raise HTTPException(status_code=500, detail="Agent response missing summary.")
+    if isinstance(summary, dict):
+        calc = summary.get("calculate_tax_response")
+        mock = summary.get("generate_mock_1040_response")
+        if isinstance(calc, dict) and isinstance(mock, dict):
+            return {"calc": calc, "mock": mock, "explanation": explanation}
 
-    calc = summary.get("calculate_tax_response")
-    mock = summary.get("generate_mock_1040_response")
-    if not isinstance(calc, dict):
-        raise HTTPException(
-            status_code=500,
-            detail="Agent response missing calculate_tax_response.",
-        )
-    if not isinstance(mock, dict):
-        raise HTTPException(
-            status_code=500,
-            detail="Agent response missing generate_mock_1040_response.",
-        )
+    # Shape 2: top-level calculate / mock_1040 (what LangGraph sometimes returns)
+    calc = agent_response.get("calculate")
+    mock = agent_response.get("mock_1040")
+    if calc is not None and mock is not None:
+        return {"calc": calc, "mock": mock, "explanation": explanation}
 
-    return {"calc": calc, "mock": mock, "explanation": agent_response.get("explanation")}
+    raise HTTPException(
+        status_code=500,
+        detail="Agent response missing summary or calculate/mock_1040. Expected keys: summary.calculate_tax_response & summary.generate_mock_1040_response, or top-level calculate & mock_1040.",
+    )
 
 
 def _unwrap_langchain_output(block: dict) -> dict:
