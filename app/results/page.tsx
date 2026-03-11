@@ -118,7 +118,8 @@ export default async function ResultsPage({
                 <div className="flex justify-between">
                   <dt className="font-medium text-slate-600">Estimated tax owed</dt>
                   <dd className="font-mono text-slate-900">
-                    ${calc.tax_owed.toLocaleString(undefined, {
+                    $
+                    {(calc.tax_owed ?? 0).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -127,7 +128,8 @@ export default async function ResultsPage({
                 <div className="flex justify-between">
                   <dt className="font-medium text-slate-600">Taxable income</dt>
                   <dd className="font-mono text-slate-900">
-                    ${calc.taxable_income.toLocaleString(undefined, {
+                    $
+                    {(calc.taxable_income ?? 0).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -146,10 +148,13 @@ export default async function ResultsPage({
                   <dd className="font-mono text-slate-900">
                     {netRefundOrBalance >= 0 ? "Refund of " : "Amount due "}
                     $
-                    {Math.abs(netRefundOrBalance).toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    {Math.abs(netRefundOrBalance || 0).toLocaleString(
+                      undefined,
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      },
+                    )}
                   </dd>
                 </div>
                 <div className="flex justify-between">
@@ -198,7 +203,8 @@ export default async function ResultsPage({
                     </span>
                   </div>
                   <span className="text-xs font-mono text-slate-900">
-                    ${line.value.toLocaleString(undefined, {
+                    $
+                    {(line.value ?? 0).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}

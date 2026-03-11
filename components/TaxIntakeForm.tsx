@@ -345,12 +345,13 @@ export function TaxIntakeForm({ initialValues }: TaxIntakeFormProps) {
           <p className="text-xs font-medium text-red-600">{apiError}</p>
         )}
         {taxSummary && (
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-700">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-700">
             <div>
               <span className="font-semibold text-slate-900">
                 Estimated tax owed:
               </span>{" "}
-              ${taxSummary.taxOwed.toLocaleString(undefined, {
+              $
+              {(taxSummary.taxOwed ?? 0).toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
@@ -360,7 +361,8 @@ export function TaxIntakeForm({ initialValues }: TaxIntakeFormProps) {
               <span className="font-semibold text-slate-900">
                 Taxable income:
               </span>{" "}
-              ${taxSummary.taxableIncome.toLocaleString(undefined, {
+              $
+              {(taxSummary.taxableIncome ?? 0).toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
@@ -379,7 +381,7 @@ export function TaxIntakeForm({ initialValues }: TaxIntakeFormProps) {
               </span>{" "}
               {taxSummary.netRefundOrBalance >= 0 ? "Refund of" : "Amount due"}{" "}
               $
-              {Math.abs(taxSummary.netRefundOrBalance).toLocaleString(
+              {Math.abs(taxSummary.netRefundOrBalance || 0).toLocaleString(
                 undefined,
                 {
                   minimumFractionDigits: 2,
@@ -419,7 +421,8 @@ export function TaxIntakeForm({ initialValues }: TaxIntakeFormProps) {
                     </span>
                   </div>
                   <span className="text-xs font-mono text-slate-900">
-                    ${line.value.toLocaleString(undefined, {
+                    $
+                    {(line.value ?? 0).toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
