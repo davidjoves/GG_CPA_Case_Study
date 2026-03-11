@@ -18,15 +18,11 @@ export default function Home() {
               any time.
             </p>
           </div>
-          <div className="flex items-start gap-3">
-            <button className="hidden rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 sm:inline-flex">
-              Print intake summary
-            </button>
-          </div>
+
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-[minmax(0,2.3fr)_minmax(0,1fr)]">
-          <div className="space-y-4">
+        <section className="flex justify-center">
+          <div className="w-full max-w-3xl space-y-4">
             <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
               <div>
                 <span className="font-semibold text-slate-900">
@@ -52,32 +48,6 @@ export default function Home() {
 
             <TaxIntakeForm />
           </div>
-
-          <aside className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-sm font-semibold text-slate-900">
-                View your tax results
-              </h2>
-              <p className="mt-1 text-xs text-slate-600">
-                Once you complete the intake, we will calculate an estimated tax
-                owed or refund due using a simplified tax model.
-              </p>
-              <button className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-sky-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-sky-700">
-                Visit Tax Summary (coming soon)
-              </button>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-sm font-semibold text-slate-900">
-                Learn about this prototype
-              </h2>
-              <p className="mt-1 text-xs text-slate-600">
-                This interface is part of the GreenGrowth CPAs AI Intern case
-                study. It mimics the feel of a guided government form while
-                staying focused on a simple tax scenario.
-              </p>
-            </div>
-          </aside>
         </section>
       </main>
     </div>
