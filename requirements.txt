@@ -1,5 +1,6 @@
 # MCP Client & MCP Server Dependencies
-mcp>=1.0.0
+# Install server extras so `mcp.server.fastmcp` is available.
+mcp[server]>=1.0.0
 fastmcp>=0.1.0
 langchain-mcp-adapters>=0.1.0
 langgraph>=0.2.0
