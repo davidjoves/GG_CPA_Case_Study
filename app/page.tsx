@@ -5,7 +5,7 @@ export default function Home() {
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
       <main className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
+          <div className="text-center sm:text-left">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
               AI TAX RETURN AGENT
             </p>
