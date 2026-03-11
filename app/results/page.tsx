@@ -25,11 +25,36 @@ async function fetchResults(params: SearchParams) {
     cache: "no-store",
   });
 
-  if (!res.ok) {
-    throw new Error("Unable to calculate tax.");
+  let error: string | null = null;
+  let payload: unknown = null;
+
+  try {
+    payload = await res.json();
+  } catch {
+    // ignore JSON errors; handle below
   }
 
-  const data = (await res.json()) as {
+  if (!res.ok) {
+    if (
+      payload &&
+      typeof payload === "object" &&
+      "detail" in (payload as { detail?: string }) &&
+      typeof (payload as { detail?: string }).detail === "string"
+    ) {
+      error = (payload as { detail: string }).detail;
+    } else {
+      error = "Unable to calculate tax.";
+    }
+
+    return {
+      calc: null,
+      mock: null,
+      netRefundOrBalance: 0,
+      error,
+    };
+  }
+
+  const data = payload as {
     calculate: {
       income: number;
       deductions_applied: number;
@@ -45,20 +70,12 @@ async function fetchResults(params: SearchParams) {
     };
   };
 
-  const calc = data.calculate as {
-    income: number;
-    deductions_applied: number;
-    taxable_income: number;
-    tax_owed: number;
-    effective_rate_percent: number;
-    top_marginal_bracket: string;
-  };
-
+  const calc = data.calculate;
   const mock = data.mock_1040;
 
   const netRefundOrBalance = Number((withheld - calc.tax_owed).toFixed(2));
 
-  return { calc, mock, netRefundOrBalance };
+  return { calc, mock, netRefundOrBalance, error: null };
 }
 
 export default async function ResultsPage({
@@ -67,11 +84,39 @@ export default async function ResultsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { calc, mock, netRefundOrBalance } = await fetchResults(params);
+  const { calc, mock, netRefundOrBalance, error } = await fetchResults(params);
   const filingStatus =
     params.filing_status === "married" ? "married" : "single";
   const deductions = Number(params.deductions || 0);
   const withheld = Number(params.withheld || 0);
+
+  if (!calc || !mock || error) {
+    return (
+      <div className="min-h-screen bg-slate-100 font-sans text-slate-900">
+        <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-4 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+          <header className="space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              Tax Results
+            </h1>
+            <p className="text-sm text-slate-600">
+              We were unable to calculate your tax estimate.{" "}
+              {error
+                ? `Details: ${error}`
+                : "Please try again in a moment and ensure all inputs are valid."}
+            </p>
+          </header>
+          <div>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-1.5 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
+            >
+              ← Back to intake form
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900">

@@ -76,16 +76,21 @@ async def run_tax_agent_demo(
                 "1) Call the `calculate_tax` tool exactly once with these values.\n"
                 "2) Call the `generate_mock_1040` tool exactly once with the same values.\n"
                 "3) Optionally call `explain_tax_result` to help you write an explanation.\n"
-                "4) Your FINAL answer must be a SINGLE JSON object with this exact shape:\n"
+                "4) Your FINAL answer must be a SINGLE JSON object with EXACTLY this shape and key names:\n"
                 "{\n"
                 '  \"summary\": {\n'
-                '    \"calculate_tax_response\": <RAW JSON you got back from the calculate_tax tool>,\n'
-                '    \"generate_mock_1040_response\": <RAW JSON you got back from the generate_mock_1040 tool>\n'
+                '    \"calculate_tax_response\": <the RAW JSON object returned by the `calculate_tax` tool, copied verbatim>,\n'
+                '    \"generate_mock_1040_response\": <the RAW JSON object returned by the `generate_mock_1040` tool, copied verbatim>\n'
                 "  },\n"
                 '  \"explanation\": \"Short human-friendly explanation of the result\"\n'
                 "}\n"
-                "Do not wrap this JSON in markdown code fences. Do not add any other keys.\n"
-                "Do not include tool call logs or commentary in the final JSON.\n"
+                "IMPORTANT FORMAT RULES:\n"
+                "- Respond with JSON ONLY, no natural-language text before or after.\n"
+                "- Do NOT wrap the JSON in markdown code fences.\n"
+                "- Do NOT add, remove, or rename any keys.\n"
+                "- Do NOT nest the JSON inside any other structure.\n"
+                "- Do NOT modify the tool outputs when copying them into the JSON.\n"
+                "Do not include tool call logs, reasoning steps, or commentary in the final JSON.\n"
             )
 
             result: Dict[str, Any] = await agent.ainvoke(

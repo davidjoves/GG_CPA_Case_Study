@@ -129,10 +129,18 @@ async def calculate_route(req: TaxRequest) -> dict:
     # `mock_form`, `calculation`, and `summary`. The frontend only
     # needs `mock_form` for display.
     mock_form = mock.get("mock_form", mock)
+    explanation_text = payload.get("explanation")
+    if not isinstance(explanation_text, str) or not explanation_text.strip():
+        explanation_text = explain_tax_result(
+            income=req.income,
+            filing_status=req.filing_status,
+            deductions=req.deductions,
+        )
+
     return {
         "calculate": calc,
         "mock_1040": mock_form,
-        "explanation": payload.get("explanation"),
+        "explanation": explanation_text,
     }
 
 
