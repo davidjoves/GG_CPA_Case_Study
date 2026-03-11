@@ -1,18 +1,42 @@
 from typing import Literal, List, Dict
 
 
-FilingStatus = Literal["single", "married"]
+FilingStatus = Literal[
+    "single",
+    "married",
+    "married_joint",
+    "married_separate",
+    "head",
+    "qualifying_surviving_spouse",
+]
 
 
+# For this prototype, we give each supported filing status an explicit
+# standard deduction and bracket table, even when some share the same
+# underlying numbers. This keeps the tax logic aligned with the UI
+# statuses surfaced in the intake form.
 STANDARD_DEDUCTION: Dict[FilingStatus, float] = {
+    # Single and Head of Household use the "single" baseline in this simplified model.
     "single": 13850.0,
+    "head": 13850.0,
+    # Married-related statuses share the "married" baseline here.
     "married": 27700.0,
+    "married_joint": 27700.0,
+    "married_separate": 27700.0,
+    "qualifying_surviving_spouse": 27700.0,
 }
 
 
-# Very simplified progressive brackets (example numbers, not real IRS tables)
+# Very simplified progressive brackets for each status
+# (example numbers, not real IRS tables).
 BRACKETS: Dict[FilingStatus, List[tuple[float, float, float]]] = {
     "single": [
+        (0.0, 11000.0, 0.10),
+        (11000.0, 44725.0, 0.12),
+        (44725.0, 95375.0, 0.22),
+        (95375.0, float("inf"), 0.24),
+    ],
+    "head": [
         (0.0, 11000.0, 0.10),
         (11000.0, 44725.0, 0.12),
         (44725.0, 95375.0, 0.22),
@@ -24,12 +48,36 @@ BRACKETS: Dict[FilingStatus, List[tuple[float, float, float]]] = {
         (89450.0, 190750.0, 0.22),
         (190750.0, float("inf"), 0.24),
     ],
+    "married_joint": [
+        (0.0, 22000.0, 0.10),
+        (22000.0, 89450.0, 0.12),
+        (89450.0, 190750.0, 0.22),
+        (190750.0, float("inf"), 0.24),
+    ],
+    "married_separate": [
+        (0.0, 22000.0, 0.10),
+        (22000.0, 89450.0, 0.12),
+        (89450.0, 190750.0, 0.22),
+        (190750.0, float("inf"), 0.24),
+    ],
+    "qualifying_surviving_spouse": [
+        (0.0, 22000.0, 0.10),
+        (22000.0, 89450.0, 0.12),
+        (89450.0, 190750.0, 0.22),
+        (190750.0, float("inf"), 0.24),
+    ],
 }
 
 
 def _compute_taxable_income(
     income: float, filing_status: FilingStatus, deductions: float | None
 ) -> float:
+    if filing_status not in STANDARD_DEDUCTION:
+        raise ValueError(
+            'filing_status must be one of '
+            '"single", "married", "married_joint", "married_separate", '
+            '"head", or "qualifying_surviving_spouse".'
+        )
     std_deduction = STANDARD_DEDUCTION[filing_status]
     applied_deduction = max(deductions or 0.0, std_deduction)
     taxable_income = max(0.0, income - applied_deduction)
@@ -39,6 +87,12 @@ def _compute_taxable_income(
 def _compute_tax_owed(
     taxable_income: float, filing_status: FilingStatus
 ) -> tuple[float, str]:
+    if filing_status not in BRACKETS:
+        raise ValueError(
+            'filing_status must be one of '
+            '"single", "married", "married_joint", "married_separate", '
+            '"head", or "qualifying_surviving_spouse".'
+        )
     brackets = BRACKETS[filing_status]
     remaining = taxable_income
     tax = 0.0
@@ -69,7 +123,11 @@ def calculate_tax_result(
         raise ValueError("Income must be non-negative.")
 
     if filing_status not in STANDARD_DEDUCTION:
-        raise ValueError('filing_status must be "single" or "married".')
+        raise ValueError(
+            'filing_status must be one of '
+            '"single", "married", "married_joint", "married_separate", '
+            '"head", or "qualifying_surviving_spouse".'
+        )
 
     taxable_income = _compute_taxable_income(income, filing_status, deductions)
     tax_owed, top_bracket = _compute_tax_owed(taxable_income, filing_status)
