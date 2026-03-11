@@ -2,16 +2,18 @@ import os
 import json
 import subprocess
 import sys
-from typing import Optional, Any, Dict
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import google.generativeai as genai
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 
-from backend.tax_tools import FilingStatus
+from backend.tax_tools import (
+    FilingStatus,
+    calculate_tax_result,
+    explain_tax_result,
+)
+from backend.mcp.server import generate_mock_1040
 from dotenv import load_dotenv
 
 load_dotenv() 
