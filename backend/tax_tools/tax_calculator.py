@@ -15,59 +15,47 @@ FilingStatus = Literal[
 # standard deduction and bracket table, even when some share the same
 # underlying numbers. This keeps the tax logic aligned with the UI
 # statuses surfaced in the intake form.
-STANDARD_DEDUCTION: Dict[FilingStatus, float] = {
-    # Single and Head of Household use the "single" baseline in this simplified model.
-    "single": 13850.0,
-    "head": 13850.0,
-    # Married-related statuses share the "married" baseline here.
-    "married": 27700.0,
-    "married_joint": 27700.0,
-    "married_separate": 27700.0,
-    "qualifying_surviving_spouse": 27700.0,
+STANDARD_DEDUCTION: Dict[str, float] = {
+    "single": 15750.0,
+    "head": 23625.0,
+    "married_joint": 31500.0,
+    "married_separate": 15750.0,
+    "surviving_spouse": 31500.0
 }
 
 
 # Very simplified progressive brackets for each status
 # (example numbers, not real IRS tables).
-BRACKETS: Dict[FilingStatus, List[tuple[float, float, float]]] = {
+# Format: (Lower_Bound, Upper_Bound, Rate)
+BRACKETS: Dict[str, List[tuple[float, float, float]]] = {
     "single": [
-        (0.0, 11000.0, 0.10),
-        (11000.0, 44725.0, 0.12),
-        (44725.0, 95375.0, 0.22),
-        (95375.0, float("inf"), 0.24),
-    ],
-    "head": [
-        (0.0, 11000.0, 0.10),
-        (11000.0, 44725.0, 0.12),
-        (44725.0, 95375.0, 0.22),
-        (95375.0, float("inf"), 0.24),
-    ],
-    "married": [
-        (0.0, 22000.0, 0.10),
-        (22000.0, 89450.0, 0.12),
-        (89450.0, 190750.0, 0.22),
-        (190750.0, float("inf"), 0.24),
+        (0.0, 11925.0, 0.10),
+        (11925.0, 48475.0, 0.12),
+        (48475.0, 103350.0, 0.22),
+        (103350.0, 197300.0, 0.24),
+        (197300.0, 250525.0, 0.32),
+        (250525.0, 626350.0, 0.35),
+        (626350.0, float("inf"), 0.37),
     ],
     "married_joint": [
-        (0.0, 22000.0, 0.10),
-        (22000.0, 89450.0, 0.12),
-        (89450.0, 190750.0, 0.22),
-        (190750.0, float("inf"), 0.24),
+        (0.0, 23850.0, 0.10),
+        (23850.0, 96950.0, 0.12),
+        (96950.0, 206700.0, 0.22),
+        (206700.0, 394600.0, 0.24),
+        (394600.0, 501050.0, 0.32),
+        (501050.0, 751600.0, 0.35),
+        (751600.0, float("inf"), 0.37),
     ],
-    "married_separate": [
-        (0.0, 22000.0, 0.10),
-        (22000.0, 89450.0, 0.12),
-        (89450.0, 190750.0, 0.22),
-        (190750.0, float("inf"), 0.24),
-    ],
-    "qualifying_surviving_spouse": [
-        (0.0, 22000.0, 0.10),
-        (22000.0, 89450.0, 0.12),
-        (89450.0, 190750.0, 0.22),
-        (190750.0, float("inf"), 0.24),
-    ],
+    "head": [
+        (0.0, 17000.0, 0.10),
+        (17000.0, 64850.0, 0.12),
+        (64850.0, 103350.0, 0.22),
+        (103350.0, 197300.0, 0.24),
+        (197300.0, 250500.0, 0.32),
+        (250500.0, 626350.0, 0.35),
+        (626350.0, float("inf"), 0.37),
+    ]
 }
-
 
 def _compute_taxable_income(
     income: float, filing_status: FilingStatus, deductions: float | None
