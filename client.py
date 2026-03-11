@@ -119,8 +119,29 @@ async def run_tax_agent_demo(
                     parsed = json.loads(cleaned)
                 except json.JSONDecodeError:
                     parsed = {"explanation": content}
+            elif isinstance(content, list) and content:
+                # LangChain-style list of blocks, e.g. [{"type": "text", "text": "..."}]
+                text = None
+                for block in content:
+                    if isinstance(block, dict):
+                        text = block.get("text") or block.get("content")
+                        if isinstance(text, str):
+                            break
+                if isinstance(text, str):
+                    cleaned = text.strip()
+                    if cleaned.startswith("```"):
+                        cleaned = cleaned.removeprefix("```json").removeprefix("```")
+                        if "```" in cleaned:
+                            cleaned = cleaned.split("```", 1)[0]
+                        cleaned = cleaned.strip()
+                    try:
+                        parsed = json.loads(cleaned)
+                    except json.JSONDecodeError:
+                        parsed = {"explanation": text}
+                else:
+                    parsed = {"raw_output": json.dumps(content)}
             else:
-                parsed = content
+                parsed = content if isinstance(content, dict) else {"raw_output": str(content)}
 
             print(json.dumps(parsed))
 

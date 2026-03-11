@@ -54,10 +54,25 @@ def _extract_agent_payload(agent_response: dict) -> dict:
 
     1) Preferred: { "summary": { "calculate_tax_response": {...}, "generate_mock_1040_response": {...} }, "explanation": "..." }
     2) Top-level:  { "calculate": {...}, "mock_1040": {...}, "explanation": "..." }
-       (values may be LangChain-wrapped {"output": [{"text": "..."}]})
+    3) Flat:       { "calculate_tax_response": {...}, "generate_mock_1040_response": {...}, "explanation": "..." }
+    4) raw_output: { "raw_output": "<json string>" } - parse and recurse
     """
     if not isinstance(agent_response, dict):
         raise HTTPException(status_code=500, detail="Agent response is not a JSON object.")
+
+    # If we only have raw_output (e.g. client printed a string), parse and try again
+    raw = agent_response.get("raw_output")
+    if (
+        len(agent_response) == 1
+        and isinstance(raw, str)
+        and raw.strip().startswith("{")
+    ):
+        try:
+            inner = json.loads(raw)
+            if isinstance(inner, dict):
+                return _extract_agent_payload(inner)
+        except json.JSONDecodeError:
+            pass
 
     explanation = agent_response.get("explanation")
     if not isinstance(explanation, str):
@@ -71,15 +86,22 @@ def _extract_agent_payload(agent_response: dict) -> dict:
         if isinstance(calc, dict) and isinstance(mock, dict):
             return {"calc": calc, "mock": mock, "explanation": explanation}
 
-    # Shape 2: top-level calculate / mock_1040 (what LangGraph sometimes returns)
+    # Shape 2: top-level calculate / mock_1040 (LangGraph style)
     calc = agent_response.get("calculate")
     mock = agent_response.get("mock_1040")
     if calc is not None and mock is not None:
         return {"calc": calc, "mock": mock, "explanation": explanation}
 
+    # Shape 3: flat calculate_tax_response / generate_mock_1040_response
+    calc = agent_response.get("calculate_tax_response")
+    mock = agent_response.get("generate_mock_1040_response")
+    if isinstance(calc, dict) and isinstance(mock, dict):
+        return {"calc": calc, "mock": mock, "explanation": explanation}
+
+    keys = list(agent_response.keys()) if agent_response else []
     raise HTTPException(
         status_code=500,
-        detail="Agent response missing summary or calculate/mock_1040. Expected keys: summary.calculate_tax_response & summary.generate_mock_1040_response, or top-level calculate & mock_1040.",
+        detail=f"Agent response missing expected keys. Top-level keys received: {keys}. Expected: summary (with calculate_tax_response & generate_mock_1040_response), or calculate & mock_1040, or flat calculate_tax_response & generate_mock_1040_response.",
     )
 
 
@@ -221,14 +243,15 @@ def agent_run(req: AgentRequest) -> dict:
     # If the agent printed a list of content blocks, unwrap the first one.
     if isinstance(parsed, list) and parsed:
         first = parsed[0]
-        if isinstance(first, dict) and "text" in first:
-            text = first["text"]
+        if isinstance(first, dict):
+            text = first.get("text") or first.get("content")
             if isinstance(text, str):
                 cleaned = text.strip()
                 if cleaned.startswith("```"):
                     cleaned = cleaned.removeprefix("```json").removeprefix("```")
                     if "```" in cleaned:
                         cleaned = cleaned.split("```", 1)[0]
+                    cleaned = cleaned.strip()
                 try:
                     inner = json.loads(cleaned)
                     if isinstance(inner, dict):
