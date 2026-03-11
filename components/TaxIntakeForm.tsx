@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { SectionCard } from "./SectionCard";
 import { FormField } from "./FormField";
+import { API } from "../config";
 
 type FilingStatus =
   | "single"
@@ -21,6 +23,7 @@ type TaxFormValues = {
 type TaxFormErrors = Partial<Record<keyof TaxFormValues, string>>;
 
 export function TaxIntakeForm() {
+  const router = useRouter();
   const [values, setValues] = useState<TaxFormValues>({
     filingStatus: "",
     grossIncome: "",
@@ -35,6 +38,11 @@ export function TaxIntakeForm() {
     taxableIncome: number;
     effectiveRatePercent: number;
     netRefundOrBalance: number;
+  } | null>(null);
+  const [mock1040, setMock1040] = useState<{
+    title: string;
+    tax_year: number;
+    lines: { line: string; label: string; value: number }[];
   } | null>(null);
 
   const updateField = (field: keyof TaxFormValues, value: string) => {
@@ -101,7 +109,7 @@ export function TaxIntakeForm() {
     setApiError(null);
 
     try {
-      const response = await fetch("/api/calculate", {
+      const response = await fetch(API.CALCULATE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -139,11 +147,20 @@ export function TaxIntakeForm() {
         effectiveRatePercent: data.effective_rate_percent,
         netRefundOrBalance,
       });
+      // Navigate to dedicated results page, passing inputs via query string.
+      const params = new URLSearchParams({
+        income: String(income),
+        deductions: String(deductions),
+        withheld: String(withheld),
+        filing_status: mapFilingStatusToApi(values.filingStatus),
+      });
+      router.push(`/results?${params.toString()}`);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unexpected error occurred.";
       setApiError(message);
       setTaxSummary(null);
+      setMock1040(null);
     } finally {
       setSubmitting(false);
     }
@@ -357,7 +374,89 @@ export function TaxIntakeForm() {
             </div>
           </div>
         )}
-        <div className="flex justify-end">
+        {mock1040 && (
+          <div className="mt-3 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-800 shadow-xs">
+            <div className="mb-2 flex items-baseline justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Mock 1040 Preview
+                </p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {mock1040.title}
+                </p>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Tax year {mock1040.tax_year}
+              </p>
+            </div>
+            <div className="divide-y divide-slate-200">
+              {mock1040.lines.map((line) => (
+                <div
+                  key={line.line}
+                  className="flex items-center justify-between py-1.5"
+                >
+                  <div className="flex items-baseline gap-2">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded border border-slate-300 bg-slate-50 text-[11px] font-semibold text-slate-700">
+                      {line.line}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-700">
+                      {line.label}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono text-slate-900">
+                    ${line.value.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            disabled={submitting || !taxSummary}
+            onClick={async () => {
+              setApiError(null);
+              setMock1040(null);
+              if (!values.filingStatus) return;
+              try {
+                const income = Number(values.grossIncome);
+                const deductions = Number(values.totalDeductions);
+                const response = await fetch(API.MOCK_1040, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    income,
+                    filing_status: mapFilingStatusToApi(values.filingStatus),
+                    deductions,
+                  }),
+                });
+                if (!response.ok) {
+                  throw new Error("Unable to generate mock 1040.");
+                }
+                const data = (await response.json()) as {
+                  mock_form: {
+                    title: string;
+                    tax_year: number;
+                    lines: { line: string; label: string; value: number }[];
+                  };
+                };
+                setMock1040(data.mock_form);
+              } catch (error) {
+                const message =
+                  error instanceof Error
+                    ? error.message
+                    : "Unexpected error generating mock 1040.";
+                setApiError(message);
+              }
+            }}
+            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Preview mock 1040
+          </button>
           <button
             type="submit"
             disabled={submitting}

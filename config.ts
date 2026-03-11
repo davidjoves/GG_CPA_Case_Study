@@ -1,16 +1,10 @@
-const BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL ||
-  (process.env.NODE_ENV === "development"
-    ? "http://localhost:3000"
-    : "");
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
 
-
-const API_PATHS = {
-    CALCULATE: `${BASE_URL}/api/calculate`,
+export const API = {
+  CALCULATE: `${API_BASE_URL}/api/calculate`,
+  MOCK_1040: `${API_BASE_URL}/api/mock-1040`,
+  AGENT_RUN: `${API_BASE_URL}/api/agent-run`,
 };
 
-const API_URLS = {
-    CALCULATE: `${BASE_URL}${API_PATHS.CALCULATE}`,
-};
-
-export const API = API_URLS;
