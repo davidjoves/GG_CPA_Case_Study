@@ -138,7 +138,7 @@ export default async function ResultsPage({
                 <div className="flex justify-between">
                   <dt className="font-medium text-slate-600">Effective rate</dt>
                   <dd className="font-mono text-slate-900">
-                    {calc.effective_rate_percent.toFixed(2)}%
+                    {Number(calc.effective_rate_percent ?? 0).toFixed(2)}%
                   </dd>
                 </div>
                 <div className="flex justify-between">
