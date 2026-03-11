@@ -66,21 +66,26 @@ async def run_tax_agent_demo(
             agent = create_react_agent(model, tools)
 
             # Ask the agent to call calculate_tax + generate_mock_1040 for
-            # the provided inputs and return a single JSON object.
+            # the provided inputs and return a single JSON object in a very
+            # specific shape that the FastAPI backend expects.
             user_message = (
                 "You are a tax-return agent with access to tools like "
                 "`calculate_tax`, `generate_mock_1040`, and `explain_tax_result`.\n\n"
                 f"For a filer with filing_status = {filing_status!r}, "
                 f"income = {income}, and deductions = {deductions}:\n"
-                "1) Use the tools to compute the tax owed and key numbers.\n"
-                "2) Generate a mock 1040-style layout.\n"
-                "3) Respond with TWO sections:\n"
-                "   (A) A JSON object under the key `summary` containing the raw "
-                "numbers and mock form structure you obtained from the tools.\n"
-                "   (B) A short, human-friendly explanation under the key "
-                "`explanation`.\n"
-                "Return your final answer as a single JSON object like:\n"
-                "{ \"summary\": { ... }, \"explanation\": \"...\" }"
+                "1) Call the `calculate_tax` tool exactly once with these values.\n"
+                "2) Call the `generate_mock_1040` tool exactly once with the same values.\n"
+                "3) Optionally call `explain_tax_result` to help you write an explanation.\n"
+                "4) Your FINAL answer must be a SINGLE JSON object with this exact shape:\n"
+                "{\n"
+                '  \"summary\": {\n'
+                '    \"calculate_tax_response\": <RAW JSON you got back from the calculate_tax tool>,\n'
+                '    \"generate_mock_1040_response\": <RAW JSON you got back from the generate_mock_1040 tool>\n'
+                "  },\n"
+                '  \"explanation\": \"Short human-friendly explanation of the result\"\n'
+                "}\n"
+                "Do not wrap this JSON in markdown code fences. Do not add any other keys.\n"
+                "Do not include tool call logs or commentary in the final JSON.\n"
             )
 
             result: Dict[str, Any] = await agent.ainvoke(
